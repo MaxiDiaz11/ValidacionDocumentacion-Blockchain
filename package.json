@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "description": "Validacion de documentacion Blockchain",
   "main": "dist/app.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node dist/app.js",
+    "start": "node src/app.js",
     "lint": "eslint . --ext .ts"
   },
   "keywords": [
