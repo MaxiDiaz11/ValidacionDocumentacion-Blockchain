@@ -1,16 +1,25 @@
 import * as IPFS from "ipfs-core";
 import express from "express";
 
-
 const app = express();
 const port = 3000;
 
-app.post("/uploadfile", async (req, res) => {
+app.get("/uploadfile",async (req, res) => {
     
-    const cid = await createNode(req.fileName,req.fileContent)
+    console.log("Body:",req.body)
+    const contentToBytes = base64ToArrayBuffer(req.body.fileContent)
+    const cid = await createNode(req.fileName,contentToBytes)
 
     res.send(cid);
 });
+
+
+const base64ToArrayBuffer = (base64) => {
+  let buff = new Buffer(base64);
+  let base64data = buff.toString('base64');
+  return base64data
+}
+
 
 app.get("/validate", async (req,res) => {
 
@@ -36,3 +45,4 @@ const createNode = async (filename,fileContent) => {
   console.log("Added file:", fileAdded.path, fileAdded.cid);
   return fileAdded.cid;
 };
+
