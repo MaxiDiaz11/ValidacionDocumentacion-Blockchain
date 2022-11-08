@@ -3,7 +3,10 @@ import * as IPFS from "ipfs-core";
 import formidable from 'formidable';
 import fs from 'fs'
 import nodeMailer from 'nodemailer'
+import * as dotenv from 'dotenv'
 
+
+dotenv.config({ path: 'variables.env' })
 
 var IPFS_Node = null
 
@@ -84,12 +87,12 @@ const sendEmail = (cid) => {
         port: 465,
         secure: true,
         auth: {
-            user: 'jpsoriah2o@gmail.com',
-            pass: 'jfegroqbmorukxpt'
+            user: process.env.EMAIL_USER,
+            pass: process.env.EMAIL_PASS
         }
     });
     let mailOptions = {
-        from: 'jpsoriah2o@gmail.com', // sender address
+        from: process.env.EMAIL_USER, // sender address
         to: 'jpsoriah2o@gmail.com', // list of receivers
         subject: 'Documentacion Universitaria', // Subject line
         text: 'Testing node', // plain text body
