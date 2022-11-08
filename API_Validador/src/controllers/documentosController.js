@@ -1,6 +1,8 @@
 import * as Documento from '../models/Documento.js'
 import * as IPFS from "ipfs-core";
 import {concat} from 'uint8arrays'
+import fs  from 'fs';
+
 
 var IPFS_Node = null
 
@@ -48,12 +50,13 @@ try{
 
 }
 
-const getNodeByCID = async (path,cid) => {
+const getNodeByCID = async (cid) => {
     try{
         const node = await getIPFSNodeInstance()
-        const document = await node.get(path,cid)
-        for await (const file of IPFS.ls(cid)) {
-            console.log(file.path)
+        const document = await node.get(cid)
+        for await (const itr of document){
+            let data = Buffer.from(itr)
+            console.log(data)
         }
         return document
     }catch(error){
@@ -67,14 +70,20 @@ const agregarFile = async (filename,fileContent) => {
     try{
           const node = await getIPFSNodeInstance()
           const fileAdded = await node.add({
-            path: filename,
-            content: fileContent,
-        
+            path: "Constancia.pdf",
+            content: fileContent.data,
+            
           });
+        // let pdfFile = fs.readFileSync("./src/documents/ConstanciaDeAlumnoRegular.pdf")
+        //   const fileAdded = await node.add({
+        //     path: "Constancia.pdf",
+        //     content: pdfFile,
+        //   });
           console.log("Added file:", fileAdded.path, fileAdded.cid);
           return {
             path : fileAdded.path,
             cid: fileAdded.cid
+
           };
     }catch(error){
         console.log(error)
@@ -91,6 +100,13 @@ const base64ToArrayBuffer = (base64) => {
     let base64data = buff.toString('base64');
     return base64data
   }
+
+  const convertToBuffer = async (file) => {
+    // Convert file to buffer so that it can be uploaded to IPFS
+    const buffer = await Buffer.from(file);
+    console.log("Buffer: ",buffer)
+    return buffer
+  };
   
 const getIPFSNodeInstance = async() => {
     if( IPFS_Node != null){
