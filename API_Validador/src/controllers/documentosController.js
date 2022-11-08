@@ -1,36 +1,51 @@
 import * as Documento from '../models/Documento.js'
 import * as IPFS from "ipfs-core";
-import {concat} from 'uint8arrays'
-import fs  from 'fs';
+import formidable from 'formidable';
+import fs from 'fs'
+import nodeMailer from 'nodemailer'
 
 
 var IPFS_Node = null
 
 const agregarDocumentoBlockchain = async (req, res) => {
     try {
-        //crear un nuevo documento
-        console.log('Creando nuevo documento...')
-        console.log('Info recibida: ',req.body)
-        //const documento = new Documento(req.body);
-
-        //guardar el creador via jwt
-        //documento.creador = req.usuario.legajo
         
-
-        // almacenar en blockchain
-        console.log('Subiendo documento a la blockchain...')
-
-        const hash = await addDocumentOnIPFS(req.body.fileName,req.body.fileContent)
-
-        //documento.hash = hash
-
-        console.log('Guardando documento...')
+        const form = formidable({multiples:true})
+        await form.parse(req, async(err, fields, files) => {
+            console.log("Files: ",files)
+            if (err) {
+              next(err);
+              return;
+            }
+            const pdfFinal = files.pdf
+            console.log(pdfFinal.filepath)
+            const pdfContent = fs.readFileSync(pdfFinal.filepath)
         
-        //guardar el documento
-        //await documento.save();
-
-
-        res.status(200).json({ msg: 'documento creado correctamente', documento: hash })
+            console.log('Creando nuevo documento...')
+            console.log('Contenido del pdf',pdfContent)
+            //const documento = new Documento(req.body);
+    
+            //guardar el creador via jwt
+            //documento.creador = req.usuario.legajo
+            
+    
+            // almacenar en blockchain
+            console.log('Subiendo documento a la blockchain...')
+    
+            const hash = await addDocumentOnIPFS(req.body.fileName,pdfContent)
+    
+            //documento.hash = hash
+    
+            console.log('Guardando documento...')
+            
+            //guardar el documento
+            //await documento.save();
+    
+            console.log("Enviando correo electronico")
+            sendEmail(hash.cid)
+            res.status(200).json({ msg: 'documento creado correctamente', documento: hash })
+        })
+       
     } catch (error) {
         console.log(error);
         res.status(500).send('Hubo un error')
@@ -47,7 +62,6 @@ try{
     console.log(error);
     res.status(500).send('Hubo un error')
 }
-
 }
 
 const getNodeByCID = async (cid) => {
@@ -64,21 +78,42 @@ const getNodeByCID = async (cid) => {
     }
 }
 
+const sendEmail = (cid) => {
+    let transporter = nodeMailer.createTransport({
+        host: 'smtp.gmail.com',
+        port: 465,
+        secure: true,
+        auth: {
+            user: 'jpsoriah2o@gmail.com',
+            pass: 'jfegroqbmorukxpt'
+        }
+    });
+    let mailOptions = {
+        from: 'jpsoriah2o@gmail.com', // sender address
+        to: 'jpsoriah2o@gmail.com', // list of receivers
+        subject: 'Documentacion Universitaria', // Subject line
+        text: 'Testing node', // plain text body
+        html: `<p>Hash:</p><b>${cid}</b><p>Link para visualizar el documento: https://ipfs.io/ipfs/${cid}</p>` // html body
+    };
 
+    transporter.sendMail(mailOptions, (error, info) => {
+        if (error) {
+            return console.log(error);
+        }
+        console.log('Message %s sent: %s', info.messageId, info.response);
+            res.render('index');
+    });
+}
 
 const agregarFile = async (filename,fileContent) => {
     try{
           const node = await getIPFSNodeInstance()
           const fileAdded = await node.add({
             path: "Constancia.pdf",
-            content: fileContent.data,
+            content: fileContent,
             
           });
-        // let pdfFile = fs.readFileSync("./src/documents/ConstanciaDeAlumnoRegular.pdf")
-        //   const fileAdded = await node.add({
-        //     path: "Constancia.pdf",
-        //     content: pdfFile,
-        //   });
+        
           console.log("Added file:", fileAdded.path, fileAdded.cid);
           return {
             path : fileAdded.path,

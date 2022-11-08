@@ -4,7 +4,6 @@ const UsuarioSchema = mongoose.Schema({
     nombre: {
         type: String,
         required: true,
-        trim: true
     },
     token: {
         type: String,
@@ -15,7 +14,11 @@ const UsuarioSchema = mongoose.Schema({
         type: Number,
         default: 0,
         required: true
-    }
+    },
+    mailInstitucional: {
+        type: String,
+        required: true,
+    },
 })
 
 module.exports = mongoose.model('Usuario', UsuarioSchema)

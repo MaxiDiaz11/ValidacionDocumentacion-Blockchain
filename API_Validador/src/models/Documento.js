@@ -12,7 +12,7 @@ const DocumentoSchema = mongoose.Schema({
     },
     hash: {
         type: String,
-        default: null,
+        default: "",
         required: true
     },
     fechaHora: {

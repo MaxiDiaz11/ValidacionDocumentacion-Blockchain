@@ -1,18 +1,18 @@
 import express from 'express';
-//import conectarDB from './config/db'
+import conectarDB from './config/db.js'
 import cors from 'cors'
 import documentRouter from './routes/documentos.js';
-
+import bodyParser from 'body-parser';
 //crear el servidor
 const app = express();
 
 //conectar a la base de datos
-//conectarDB()
+conectarDB()
 
 //Habilitar express.json
-app.use(express.json())
+app.use(bodyParser.json())
 
-app.use(express.urlencoded({ extended: true }));
+app.use(bodyParser.urlencoded({extended:true}));
 //PUERTO DE LA APP
 const PORT = process.env.PORT || 4000;
 

@@ -1,13 +1,15 @@
-const mongoose = require('mongoose')
+import mongoose from 'mongoose'
+import * as dotenv from 'dotenv'
 
-require('dotenv').config({ path: 'variables.env' })
+
+dotenv.config({ path: 'variables.env' })
 
 const conectarDB = async () => {
     try {
         await mongoose.connect(process.env.DB_MONGO, {
             useNewUrlParser: true,
             useUnifiedTopology: true,
-            useFindAndModify: false
+            //useFindAndModify: false
         });
         console.log("DB conectada");
     } catch (error) {
@@ -16,4 +18,4 @@ const conectarDB = async () => {
     }
 }
 
-module.exports = conectarDB;
+export default conectarDB;
