@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const UsuarioSchema = mongoose.Schema({
+const AdministradorSchema = mongoose.Schema({
     nombre: {
         type: String,
         required: true,
@@ -11,11 +11,10 @@ const UsuarioSchema = mongoose.Schema({
         default: null,
         required: true
     },
-    legajo: {
+    rol: {
         type: Number,
-        default: 0,
-        required: true
+        default: 0
     }
 })
 
-module.exports = mongoose.model('Usuario', UsuarioSchema)
+module.exports = mongoose.model('Administrador', AdministradorSchema)

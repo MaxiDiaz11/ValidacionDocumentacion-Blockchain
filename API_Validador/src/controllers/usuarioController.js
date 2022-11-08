@@ -11,14 +11,15 @@ exports.crearUsuario = async (req, res) => {
         return res.status(400).json({ errores: errores.array() })
     }
 
-    //extraer email y password
-    const { email, password } = req.body;
+    //extraer legajo y password
+    const { legajo, nombre, token } = req.body;
 
     try {
         //Revisar que el usuario registrado sea unico
-        let usuario = await Usuario.findOne({ email })
+        let usuario = await Usuario.findOne({ legajo })
 
         if (usuario) {
+            
             return res.status(400).json({ msg: 'El usuario ya existe' })
         }
         //crea nuevo usuario
