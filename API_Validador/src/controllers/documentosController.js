@@ -4,7 +4,7 @@ import formidable from 'formidable';
 import fs from 'fs'
 import nodeMailer from 'nodemailer'
 import * as dotenv from 'dotenv'
-
+import QRCode from 'qrcode'
 
 dotenv.config({ path: 'variables.env' })
 
@@ -16,6 +16,7 @@ const agregarDocumentoBlockchain = async (req, res) => {
         const form = formidable({multiples:true})
         await form.parse(req, async(err, fields, files) => {
             console.log("Files: ",files)
+            console.log("Fields: ",fields)
             if (err) {
               next(err);
               return;
@@ -23,30 +24,40 @@ const agregarDocumentoBlockchain = async (req, res) => {
             const pdfFinal = files.pdf
             console.log(pdfFinal.filepath)
             const pdfContent = fs.readFileSync(pdfFinal.filepath)
-        
+            const pdfPath = fields.legajo + '-' + fields.constancia
             console.log('Creando nuevo documento...')
             console.log('Contenido del pdf',pdfContent)
-            //const documento = new Documento(req.body);
-    
+            const documento = new Documento.default();
+            documento.emailAlumno = fields.emailAlumno
+            documento.path = pdfPath+'.pdf'
             //guardar el creador via jwt
             //documento.creador = req.usuario.legajo
             
-    
+            
             // almacenar en blockchain
             console.log('Subiendo documento a la blockchain...')
-    
-            const hash = await addDocumentOnIPFS(req.body.fileName,pdfContent)
-    
+            
+            const hash = await addDocumentOnIPFS(pdfPath,pdfContent)
+            
             //documento.hash = hash
-    
+            documento.hash = hash.cid
+            
             console.log('Guardando documento...')
             
             //guardar el documento
-            //await documento.save();
+            try{
+                await documento.save();
+            }catch(error){
+                console.log("Documento ya almacenado en la  blockchain")
+                console.log("Enviando correo electronico")
+                sendEmail(fields.constancia,hash.cid,fields.emailAlumno)
+                res.status(200).send({msg:'Documento ya almacenado en la blockchain'})
+                return;
+            }
     
             console.log("Enviando correo electronico")
-            sendEmail(hash.cid)
-            res.status(200).json({ msg: 'documento creado correctamente', documento: hash })
+            sendEmail(fields.constancia,hash.cid,fields.emailAlumno)
+            res.status(200).json({ msg: 'Documento autenticado en la blockchain correctamente', documento: hash })
         })
        
     } catch (error) {
@@ -60,7 +71,10 @@ try{
     console.log('Obteniendo documento de la blockchain CID:', req.query.cid)
     const documentFromBlockchain = await getNodeByCID(req.query.cid)
     console.log(documentFromBlockchain)
-    res.status(200).send({msg:'Documento extraido exitosamente', document: documentFromBlockchain})
+    if(documentFromBlockchain.length > 0)
+        res.status(200).send({msg:'Documento extraido exitosamente',urlIPFS:` https://ipfs.io/ipfs/${req.query.cid}`, document: documentFromBlockchain})
+    else
+        res.status(500).send({msg:'El hash ingresado no coincide con ningun documento de la universidad'})
 }catch(error){
     console.log(error);
     res.status(500).send('Hubo un error')
@@ -69,19 +83,14 @@ try{
 
 const getNodeByCID = async (cid) => {
     try{
-        const node = await getIPFSNodeInstance()
-        const document = await node.get(cid)
-        for await (const itr of document){
-            let data = Buffer.from(itr)
-            console.log(data)
-        }
-        return document
+        const document = await Documento.default.find({hash:cid});
+        return document;
     }catch(error){
         console.log(error)
     }
 }
 
-const sendEmail = (cid) => {
+const sendEmail = async (tipoConstancia,cid,emailAlumno) => {
     let transporter = nodeMailer.createTransport({
         host: 'smtp.gmail.com',
         port: 465,
@@ -91,14 +100,40 @@ const sendEmail = (cid) => {
             pass: process.env.EMAIL_PASS
         }
     });
+    const qr = await generateQRCode(`https://ipfs.io/ipfs/${cid}`)
+    const htmlTemplate = ` <style>
+    .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 50%;
+    }
+        </style>
+        <div class="center" style="align-items: center;">
+            <img src="cid:utnlogo" 
+            style=" display: block;
+                    margin-left: auto;
+                    margin-right: auto;"
+            width="150" alt="" srcset="">
+            <p>Su ${tipoConstancia} fue generada exitosamente</p>
+            <p>Hash:<b>${cid}</b></p>
+            <p>Link para visualizar el documento: https://ipfs.io/ipfs/${cid}</p>
+            <img src=${qr}>
+        </div>`
     let mailOptions = {
         from: process.env.EMAIL_USER, // sender address
-        to: 'jpsoriah2o@gmail.com', // list of receivers
+        to: emailAlumno, // list of receivers
         subject: 'Documentacion Universitaria', // Subject line
-        text: 'Testing node', // plain text body
-        html: `<p>Hash:</p><b>${cid}</b><p>Link para visualizar el documento: https://ipfs.io/ipfs/${cid}</p>` // html body
+        attachDataUrls: true,
+        attachments: [{
+            filename: 'UTN_logo.jpg',
+            path: process.env.UTN_LOGO_PATH,
+            cid: 'utnlogo' //same cid value as in the html img src
+        }],
+        html: htmlTemplate // html body
     };
 
+    
     transporter.sendMail(mailOptions, (error, info) => {
         if (error) {
             return console.log(error);
@@ -108,11 +143,17 @@ const sendEmail = (cid) => {
     });
 }
 
+const generateQRCode = async (url) => {
+
+    let img = await QRCode.toDataURL(url);
+    return img;
+}
+
 const agregarFile = async (filename,fileContent) => {
     try{
           const node = await getIPFSNodeInstance()
           const fileAdded = await node.add({
-            path: "Constancia.pdf",
+            path: `${filename}.pdf`,
             content: fileContent,
             
           });

@@ -1,10 +1,9 @@
 import mongoose from 'mongoose'
 
 const DocumentoSchema = mongoose.Schema({
-    idAlumno: {
-        type: mongoose.Schema.Types.ObjectId,
+    emailAlumno: {
+        type: String,
         required: true,
-        ref: 'Usuario'
     },
     path: {
         type: String,
@@ -13,7 +12,8 @@ const DocumentoSchema = mongoose.Schema({
     hash: {
         type: String,
         default: "",
-        required: true
+        required: true,
+        unique: true
     },
     fechaHora: {
         type: Date,
